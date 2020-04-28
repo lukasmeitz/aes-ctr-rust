@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::iter::FromIterator;
 use std::io::{BufReader, BufWriter};
+use std::path::PathBuf;
 
 
 // Lookup Tables
@@ -180,6 +181,28 @@ fn println_bytes(name_str: &str, bytes: &Vec<u8>) {
     print!("\n");
 }
 
+#[test]
+fn test_ctr_call_1() {
+
+    let key_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+    let init_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+
+    // create test file
+    let test_file = File::create("test.txt").unwrap();
+    let mut writer = BufWriter::new(test_file);
+    writer.write("Hello World!".as_bytes());
+    writer.flush();
+
+    let generated_data = handle_aes_ctr_command(String::from("encode"),
+                                                128,
+                                                key_vec,
+                                                init_vec,
+                                                PathBuf::from("test.txt"),
+                                                PathBuf::from("test.txt.enc128"));
+
+    assert_eq!(1, 1);
+}
+
 // Function to handle encryption/decryption command with given parameters
 pub fn handle_aes_ctr_command(command: String,
                               key_size: u16,
@@ -211,7 +234,7 @@ pub fn handle_aes_ctr_command(command: String,
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
-    let output_file = File::open(output_file_path).unwrap();
+    let output_file = File::create(output_file_path).unwrap();
     let mut writer = BufWriter::with_capacity(block_size, output_file);
 
     loop {
@@ -226,14 +249,17 @@ pub fn handle_aes_ctr_command(command: String,
         }
 
         println_bytes("loop read: ", &buffer.to_vec());
-        /*/ generate cipher block and encrypt it
+        // generate cipher block and encrypt it
         let mut block_cipher = iv_bytes.clone();
         let counter_bytes = counter.to_be_bytes();
-        for i in 0..block_cipher.len()-1 {
+        for i in 0..16 {
             block_cipher[i] ^= counter_bytes[i];
         }
         counter += 1;
-        block_cipher = encrypt_aes(block_cipher, expanded_keys.clone());
+
+        println_bytes("block cipher: ", &block_cipher);
+
+        block_cipher = encrypt_aes(block_cipher, &expanded_keys);
 
         // xor cipher block with data
         let mut out_bytes: [u8; 16] = [0; 16];
@@ -244,7 +270,7 @@ pub fn handle_aes_ctr_command(command: String,
         }
 
         // write back data
-        let _ = writer.write(&out_bytes).unwrap();*/
+        let _ = writer.write(&out_bytes).unwrap();
 
         // end loop if end of file
         if end_of_file {
@@ -252,29 +278,6 @@ pub fn handle_aes_ctr_command(command: String,
         }
 
     } // end of loop
-
-}
-
-fn key_expansion_core(bytes: &[u8], index: i32) -> Vec<u8> {
-
-    let mut temp = Vec::new();
-
-    // Rotate left 1 byte
-    temp.push(bytes[1]);
-    temp.push(bytes[2]);
-    temp.push(bytes[3]);
-    temp.push(bytes[0]);
-
-    // sbox four bytes
-    temp[0] = SUBSTITUTION[temp[0] as usize];
-    temp[1] = SUBSTITUTION[temp[1] as usize];
-    temp[2] = SUBSTITUTION[temp[2] as usize];
-    temp[3] = SUBSTITUTION[temp[3] as usize];
-
-    // rcon
-    temp[0] ^= RCON[index as usize];
-
-    temp
 
 }
 
@@ -299,6 +302,29 @@ fn test_key_expand_2() {
     println_bytes("generated keys:\n", &generated_keys);
 
     assert_eq!(generated_keys.len(), 240);
+}
+
+fn key_expansion_core(bytes: &[u8], index: i32) -> Vec<u8> {
+
+    let mut temp = Vec::new();
+
+    // Rotate left 1 byte
+    temp.push(bytes[1]);
+    temp.push(bytes[2]);
+    temp.push(bytes[3]);
+    temp.push(bytes[0]);
+
+    // sbox four bytes
+    temp[0] = SUBSTITUTION[temp[0] as usize];
+    temp[1] = SUBSTITUTION[temp[1] as usize];
+    temp[2] = SUBSTITUTION[temp[2] as usize];
+    temp[3] = SUBSTITUTION[temp[3] as usize];
+
+    // rcon
+    temp[0] ^= RCON[index as usize];
+
+    temp
+
 }
 
 fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
@@ -357,11 +383,11 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
 }
 
-fn add_round_key(word: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+fn add_round_key(word: Vec<u8>, key: &[u8]) -> Vec<u8> {
 
     let mut temp = Vec::new();
 
-    for i in 0..word.len()-1 {
+    for i in 0..16 {
         temp.push(word[i]^key[i]);
     }
 
@@ -372,7 +398,7 @@ fn substitute_bytes(word: Vec<u8>) -> Vec<u8> {
 
     let mut temp = Vec::new();
 
-    for i in 0..word.len()-1 {
+    for i in 0..16 {
         temp.push(SUBSTITUTION[word[i] as usize]);
     }
 
@@ -382,7 +408,7 @@ fn substitute_bytes(word: Vec<u8>) -> Vec<u8> {
 
 fn shift_rows(word: Vec<u8>) -> Vec<u8> {
 
-    let mut temp = Vec::new();
+    let mut temp = vec![0; 16];
 
     temp[0] = word[0];
     temp[1] = word[5];
@@ -410,7 +436,7 @@ fn shift_rows(word: Vec<u8>) -> Vec<u8> {
 
 fn mix_columns(word: Vec<u8>) -> Vec<u8> {
 
-    let mut temp = Vec::new();
+    let mut temp = vec![0; 16];
 
     temp[0] = MULTIPLY_2[word[0] as usize] ^ MULTIPLY_3[word[1] as usize] ^ word[2] ^ word[3];
     temp[1] = word[0] ^ MULTIPLY_2[word[1] as usize] ^ MULTIPLY_3[word[2] as usize] ^ word[3];
@@ -436,23 +462,26 @@ fn mix_columns(word: Vec<u8>) -> Vec<u8> {
 
 }
 
-fn encrypt_aes(word: Vec<u8>, keys_vector: Vec<u8>) -> Vec<u8> {
+fn encrypt_aes(word: Vec<u8>, keys_vector: &[u8]) -> Vec<u8> {
 
     // init
     let mut round_counter = 1;
 
     // expand keys
-    let expanded_key_vector = keys_vector;
+    let mut key_index = 0;
     let mut temp_word = word.clone();
 
     // pre round
-    temp_word = add_round_key(temp_word, Vec::from_iter(expanded_key_vector[0..15].iter().cloned()));
+    temp_word = add_round_key(temp_word, &keys_vector[key_index..16]);
+    key_index += 16;
 
     // rounds
-    while round_counter < (expanded_key_vector.len()/16)-1 {
+    while round_counter < (keys_vector.len()/16)-1 {
 
         // figure out round key
-        let round_key = Vec::from_iter(expanded_key_vector[(round_counter*16)..(round_counter*16)+15].iter().cloned());
+        let round_key = &keys_vector[key_index..key_index+16];
+        println_bytes("roundkey: ", &round_key.to_vec());
+        key_index += 16;
 
         temp_word = substitute_bytes(temp_word);
         temp_word = shift_rows(temp_word);
@@ -465,7 +494,7 @@ fn encrypt_aes(word: Vec<u8>, keys_vector: Vec<u8>) -> Vec<u8> {
     // final round
     temp_word = substitute_bytes(temp_word);
     temp_word = shift_rows(temp_word);
-    temp_word= add_round_key(temp_word, Vec::from_iter(expanded_key_vector[(round_counter*16)..(round_counter*16)+15].iter().cloned()));
+    temp_word= add_round_key(temp_word, &keys_vector[key_index..key_index+16]);
 
     temp_word
 
