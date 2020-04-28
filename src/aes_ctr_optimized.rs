@@ -224,6 +224,11 @@ pub fn handle_aes_ctr_command(command: String,
     let mut end_of_file = false;
     let mut counter: u128 = 0;
 
+    // counter for counter mode
+    let mut iv_bytes_array = [0u8; 16];
+    iv_bytes_array.clone_from_slice(&iv_bytes[0..16]);
+    counter = u128::from_be_bytes(iv_bytes_array);
+
     // expand keys
     let key_count = if key_size == 128 { 11 } else { 15 };
     let expanded_keys = key_expansion(key_bytes, key_count);
@@ -250,16 +255,9 @@ pub fn handle_aes_ctr_command(command: String,
 
         println_bytes("loop read: ", &buffer.to_vec());
         // generate cipher block and encrypt it
-        let mut block_cipher = iv_bytes.clone();
         let counter_bytes = counter.to_be_bytes();
-        for i in 0..16 {
-            block_cipher[i] ^= counter_bytes[i];
-        }
+        let block_cipher = encrypt_aes(counter_bytes.to_vec(), &expanded_keys);
         counter += 1;
-
-        println_bytes("block cipher: ", &block_cipher);
-
-        block_cipher = encrypt_aes(block_cipher, &expanded_keys);
 
         // xor cipher block with data
         let mut out_bytes: [u8; 16] = [0; 16];
@@ -269,12 +267,15 @@ pub fn handle_aes_ctr_command(command: String,
             xor_counter += 1;
         }
 
-        // write back data
-        let _ = writer.write(&out_bytes).unwrap();
 
         // end loop if end of file
         if end_of_file {
+            // write back data
+            let _ = writer.write(&out_bytes[0..read_count]).unwrap();
             break;
+        } else {
+            // write back data
+            let _ = writer.write(&out_bytes).unwrap();
         }
 
     } // end of loop
@@ -392,9 +393,10 @@ fn add_round_key(word: Vec<u8>, key: &[u8]) -> Vec<u8> {
     }
 
     temp
+
 }
 
-fn substitute_bytes(word: Vec<u8>) -> Vec<u8> {
+fn substitute_bytes(word:Vec<u8>) -> Vec<u8> {
 
     let mut temp = Vec::new();
 
