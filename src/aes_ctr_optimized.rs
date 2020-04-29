@@ -184,19 +184,19 @@ fn println_bytes(name_str: &str, bytes: &Vec<u8>) {
 #[test]
 fn test_ctr_call_1() {
 
-    let key_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
-    let init_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+    let key_vec: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
+    let init_vec: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
 
     // create test file
     let test_file = File::create("test.txt").unwrap();
     let mut writer = BufWriter::new(test_file);
-    writer.write("Hello World!".as_bytes());
+    writer.write("Hello World1234!".as_bytes());
     writer.flush();
 
     let generated_data = handle_aes_ctr_command(String::from("encode"),
                                                 128,
-                                                key_vec,
-                                                init_vec,
+                                                key_vec.to_vec(),
+                                                init_vec.to_vec(),
                                                 PathBuf::from("test.txt"),
                                                 PathBuf::from("test.txt.enc128"));
 
@@ -305,7 +305,20 @@ fn test_key_expand_2() {
     assert_eq!(generated_keys.len(), 240);
 }
 
-fn key_expansion_core(bytes: &[u8], index: i32) -> Vec<u8> {
+#[test]
+fn test_key_expand_128_vector() {
+    let key: [u8; 16] = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c];
+    let key_vec = key.to_vec();
+
+    let generated_keys = key_expansion(key_vec, 11);
+    println_bytes("generated keys:\n", &generated_keys);
+
+    assert_eq!(generated_keys.len(), 240);
+
+
+}
+
+fn key_expansion_core(bytes: &[u8], index: u32) -> Vec<u8> {
 
     let mut temp = Vec::new();
 
@@ -332,7 +345,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
     let mut return_keys = Vec::new();
 
-    let mut iteration = 0;
+    let mut iteration = 1;
     let mut generated_count = 16;
     let mut temp: [u8; 4];
 
@@ -345,10 +358,10 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
     while generated_count < 16 * key_count {
 
         // copy last 4 bytes of previous key to temp
-        temp = [*return_keys.get(return_keys.len() -1).unwrap(),
-                *return_keys.get(return_keys.len() -2).unwrap(),
+        temp = [*return_keys.get(return_keys.len() -4).unwrap(),
                 *return_keys.get(return_keys.len() -3).unwrap(),
-                *return_keys.get(return_keys.len() -4).unwrap()];
+                *return_keys.get(return_keys.len() -2).unwrap(),
+                *return_keys.get(return_keys.len() -1).unwrap()];
 
         // run the core method if a complete key was generated in last iteration
         if generated_count % 16 == 0 {
@@ -464,6 +477,22 @@ fn mix_columns(word: Vec<u8>) -> Vec<u8> {
 
 }
 
+
+#[test]
+fn test_aes_1() {
+    let key: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
+    let key_vec = key.to_vec();
+
+    let generated_keys = key_expansion(key_vec, 11);
+    println_bytes("generated keys:\n", &generated_keys);
+
+    let message = "Hello World1234!".as_bytes();
+    let cipher_msg = encrypt_aes(message.to_vec(), generated_keys.as_slice());
+
+    println_bytes("output: ", &cipher_msg);
+
+}
+
 fn encrypt_aes(word: Vec<u8>, keys_vector: &[u8]) -> Vec<u8> {
 
     // init
@@ -478,26 +507,21 @@ fn encrypt_aes(word: Vec<u8>, keys_vector: &[u8]) -> Vec<u8> {
     key_index += 16;
 
     // rounds
-    while round_counter < (keys_vector.len()/16)-2 {
-
-        // figure out round key
-        let round_key = &keys_vector[key_index..key_index+16];
-        println_bytes("roundkey: ", &round_key.to_vec());
-        key_index += 16;
+    while round_counter < (keys_vector.len()/16)-1 {
 
         temp_word = substitute_bytes(temp_word);
         temp_word = shift_rows(temp_word);
         temp_word = mix_columns(temp_word);
-        temp_word = add_round_key(temp_word, round_key);
+        temp_word = add_round_key(temp_word, &keys_vector[key_index..key_index+16]);
 
+        key_index += 16;
         round_counter += 1;
     }
 
     // final round
     temp_word = substitute_bytes(temp_word);
     temp_word = shift_rows(temp_word);
-    temp_word= add_round_key(temp_word, &keys_vector[key_index..key_index+16]);
 
-    temp_word
+    add_round_key(temp_word, &keys_vector[key_index..key_index+16])
 
 }
