@@ -478,7 +478,7 @@ fn encrypt_aes(word: Vec<u8>, keys_vector: &[u8]) -> Vec<u8> {
     key_index += 16;
 
     // rounds
-    while round_counter < (keys_vector.len()/16)-1 {
+    while round_counter < (keys_vector.len()/16)-2 {
 
         // figure out round key
         let round_key = &keys_vector[key_index..key_index+16];
