@@ -346,12 +346,13 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
     let mut return_keys = Vec::new();
 
     let mut iteration = 1;
-    let mut generated_count = 16;
+    let mut generated_count = 0;
     let mut temp: [u8; 4];
 
     // copy input key to output as first 16 bytes
     for byte in input_key.iter() {
         return_keys.push(*byte);
+        generated_count += 1;
     }
 
     // generate new key bytes
@@ -373,7 +374,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
                 c += 1;
             }
             iteration += 1;
-        } else if key_count == 15 && (generated_count -4) % 8 == 0 {
+        } else if key_count == 15 && (generated_count - 4) % 8 == 0 {
             temp[0] = SUBSTITUTION[temp[0] as usize];
             temp[1] = SUBSTITUTION[temp[1] as usize];
             temp[2] = SUBSTITUTION[temp[2] as usize];
