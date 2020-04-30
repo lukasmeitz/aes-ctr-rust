@@ -373,7 +373,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
                 c += 1;
             }
             iteration += 1;
-        } else if key_count == 15 && generated_count % 16 == 4 {
+        } else if key_count == 15 && generated_count % 4 == 0 {
             temp[0] = SUBSTITUTION[temp[0] as usize];
             temp[1] = SUBSTITUTION[temp[1] as usize];
             temp[2] = SUBSTITUTION[temp[2] as usize];
