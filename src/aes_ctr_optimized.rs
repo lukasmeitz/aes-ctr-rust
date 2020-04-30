@@ -344,6 +344,7 @@ fn key_expansion_core(bytes: &[u8], index: u32) -> Vec<u8> {
 fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
     let mut return_keys = Vec::new();
+    let n = if key_count == 11 {16} else { 32 };
 
     let mut iteration = 1;
     let mut generated_count = 0;
@@ -365,7 +366,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
                 *return_keys.get(return_keys.len() -1).unwrap()];
 
         // run the core method if a complete key was generated in last iteration
-        if generated_count % 16 == 0 {
+        if generated_count % n == 0 {
             let new_bytes = key_expansion_core(&temp, iteration);
             let mut c = 0;
             for i in new_bytes.iter() {
@@ -374,7 +375,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
                 c += 1;
             }
             iteration += 1;
-        } else if key_count == 15 && (generated_count/4) % 8 == 4 {
+        } else if key_count > 11 && generated_count % n == 4 {
             temp[0] = SUBSTITUTION[temp[0] as usize];
             temp[1] = SUBSTITUTION[temp[1] as usize];
             temp[2] = SUBSTITUTION[temp[2] as usize];
