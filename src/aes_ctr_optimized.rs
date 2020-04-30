@@ -249,20 +249,18 @@ pub fn handle_aes_ctr_command(command: String,
 
         // detect end of file
         if read_count != 16 {
-            println!("end of file reached");
             end_of_file = true;
         }
 
-        println_bytes("loop read: ", &buffer.to_vec());
         // generate cipher block and encrypt it
-        let counter_bytes = counter.to_be_bytes();
-        let block_cipher = encrypt_aes(counter_bytes.to_vec(), &expanded_keys);
+        let mut counter_bytes = counter.to_be_bytes();
+        encrypt_aes(&mut counter_bytes, &expanded_keys);
         counter += 1;
 
         // xor cipher block with data
         let mut out_bytes: [u8; 16] = [0; 16];
         let mut xor_counter = 0;
-        for byte in block_cipher.iter() {
+        for byte in counter_bytes.iter() {
             out_bytes[xor_counter] = byte ^ buffer[xor_counter];
             xor_counter += 1;
         }
@@ -415,61 +413,54 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
 }
 
-fn add_round_key(word: Vec<u8>, key: &[u8]) -> Vec<u8> {
-
-    let mut temp = Vec::new();
+fn add_round_key(word: &mut [u8], key: &[u8]) {
 
     for i in 0..16 {
-        temp.push(word[i]^key[i]);
+        word[i] = word[i] ^ key[i];
     }
-
-    temp
 
 }
 
-fn substitute_bytes(word:Vec<u8>) -> Vec<u8> {
-
-    let mut temp = Vec::new();
+fn substitute_bytes(word: &mut [u8]) {
 
     for i in 0..16 {
-        temp.push(SUBSTITUTION[word[i] as usize]);
+        word[i] = SUBSTITUTION[word[i] as usize];
     }
 
-    temp
+}
+
+fn shift_rows(word: &mut [u8]) {
+
+    let mut temp: [u8; 16] = [0; 16];
+
+    for i in 0..16 {
+        temp[i] = word[i];
+    }
+
+    word[0] = temp[0];
+    word[1] = temp[5];
+    word[2] = temp[10];
+    word[3] = temp[15];
+
+    word[4] = temp[4];
+    word[5] = temp[9];
+    word[6] = temp[14];
+    word[7] = temp[3];
+
+    word[8] = temp[8];
+    word[9] = temp[13];
+    word[10] = temp[2];
+    word[11] = temp[7];
+
+    word[12] = temp[12];
+    word[13] = temp[1];
+    word[14] = temp[6];
+    word[15] = temp[11];
 
 }
 
-fn shift_rows(word: Vec<u8>) -> Vec<u8> {
-
-    let mut temp = vec![0; 16];
-
-    temp[0] = word[0];
-    temp[1] = word[5];
-    temp[2] = word[10];
-    temp[3] = word[15];
-
-    temp[4] = word[4];
-    temp[5] = word[9];
-    temp[6] = word[14];
-    temp[7] = word[3];
-
-    temp[8] = word[8];
-    temp[9] = word[13];
-    temp[10] = word[2];
-    temp[11] = word[7];
-
-    temp[12] = word[12];
-    temp[13] = word[1];
-    temp[14] = word[6];
-    temp[15] = word[11];
-
-    temp
-
-}
-
-fn mix_columns(word: Vec<u8>) -> Vec<u8> {
-
-    let mut temp = vec![0; 16];
+fn mix_columns(word: &mut [u8]) {
+    let mut temp = [0; 16];
 
     temp[0] = MULTIPLY_2[word[0] as usize] ^ MULTIPLY_3[word[1] as usize] ^ word[2] ^ word[3];
     temp[1] = word[0] ^ MULTIPLY_2[word[1] as usize] ^ MULTIPLY_3[word[2] as usize] ^ word[3];
@@ -491,12 +482,14 @@ fn mix_columns(word: Vec<u8>) -> Vec<u8> {
     temp[14] = word[12] ^ word[13] ^ MULTIPLY_2[word[14] as usize] ^ MULTIPLY_3[word[15] as usize];
     temp[15] = MULTIPLY_3[word[12] as usize] ^ word[13] ^ word[14] ^ MULTIPLY_2[word[15] as usize];
 
-    return temp
+    for i in 0..16 {
+        word[i] = temp[i];
+    }
 
 }
 
 
-#[test]
+/*#[test]
 fn test_aes_1() {
     let key: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
     let key_vec = key.to_vec();
@@ -504,42 +497,41 @@ fn test_aes_1() {
     let generated_keys = key_expansion(key_vec, 11);
     println_bytes("generated keys:\n", &generated_keys);
 
-    let message = "Hello World1234!".as_bytes();
-    let cipher_msg = encrypt_aes(message.to_vec(), generated_keys.as_slice());
+    let mut message = "Hello World1234!".as_bytes();
+    encrypt_aes(&mut message, &generated_keys.as_slice());
 
-    println_bytes("output: ", &cipher_msg);
+    println_bytes("output: ", &message.to_vec());
 
-}
+}*/
 
-fn encrypt_aes(word: Vec<u8>, keys_vector: &[u8]) -> Vec<u8> {
+fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
 
     // init
     let mut round_counter = 1;
 
     // expand keys
     let mut key_index = 0;
-    let mut temp_word = word.clone();
 
     // pre round
-    temp_word = add_round_key(temp_word, &keys_vector[key_index..16]);
+    add_round_key(word, &keys_vector[key_index..16]);
     key_index += 16;
 
     // rounds
     while round_counter < (keys_vector.len()/16)-1 {
 
-        temp_word = substitute_bytes(temp_word);
-        temp_word = shift_rows(temp_word);
-        temp_word = mix_columns(temp_word);
-        temp_word = add_round_key(temp_word, &keys_vector[key_index..key_index+16]);
+        substitute_bytes(word);
+        shift_rows(word);
+        mix_columns(word);
+        add_round_key(word, &keys_vector[key_index..key_index+16]);
 
         key_index += 16;
         round_counter += 1;
     }
 
     // final round
-    temp_word = substitute_bytes(temp_word);
-    temp_word = shift_rows(temp_word);
+    substitute_bytes(word);
+    shift_rows(word);
 
-    add_round_key(temp_word, &keys_vector[key_index..key_index+16])
+    add_round_key(word, &keys_vector[key_index..key_index+16]);
 
 }
