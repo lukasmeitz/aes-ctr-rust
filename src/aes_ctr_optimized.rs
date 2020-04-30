@@ -313,9 +313,20 @@ fn test_key_expand_128_vector() {
     let generated_keys = key_expansion(key_vec, 11);
     println_bytes("generated keys:\n", &generated_keys);
 
+    assert_eq!(generated_keys.len(), 176);
+
+
+}
+
+#[test]
+fn test_key_expand_256_vector() {
+    let key: [u8; 32] = [0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4];
+    let key_vec = key.to_vec();
+
+    let generated_keys = key_expansion(key_vec, 15);
+    println_bytes("generated keys:\n", &generated_keys);
+
     assert_eq!(generated_keys.len(), 240);
-
-
 }
 
 fn key_expansion_core(bytes: &[u8], index: u32) -> Vec<u8> {
@@ -375,7 +386,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
                 c += 1;
             }
             iteration += 1;
-        } else if key_count > 11 && generated_count % n == 4 {
+        } else if key_count > 11 && generated_count % 16 == 0 {
             temp[0] = SUBSTITUTION[temp[0] as usize];
             temp[1] = SUBSTITUTION[temp[1] as usize];
             temp[2] = SUBSTITUTION[temp[2] as usize];
@@ -384,10 +395,10 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
 
         // xor 4 new bytes to first 4 bytes of the last generated key
-        temp[0] ^= return_keys[return_keys.len() - 16];
-        temp[1] ^= return_keys[return_keys.len() - 15];
-        temp[2] ^= return_keys[return_keys.len() - 14];
-        temp[3] ^= return_keys[return_keys.len() - 13];
+        temp[0] ^= return_keys[return_keys.len() - n];
+        temp[1] ^= return_keys[return_keys.len() - n + 1];
+        temp[2] ^= return_keys[return_keys.len() - n + 2];
+        temp[3] ^= return_keys[return_keys.len() - n + 3];
 
         // append buffer
         return_keys.push(temp[0]);
