@@ -352,6 +352,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
     let mut iteration = 1;
     let mut generated_count = 0;
     let mut temp: [u8; 4];
+    let mut holder = 0u8;
 
     // copy input key to output as first 16 bytes
     for byte in input_key.iter() {
@@ -370,11 +371,13 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
         // run the core method if a complete key was generated in last iteration
         if generated_count % n == 0 {
+            holder = temp[0];
 
             // sbox four bytes rotatet left for one bit
+            temp[0] = SUBSTITUTION[temp[1] as usize];
             temp[1] = SUBSTITUTION[temp[2] as usize];
             temp[2] = SUBSTITUTION[temp[3] as usize];
-            temp[3] = SUBSTITUTION[temp[0] as usize];
+            temp[3] = SUBSTITUTION[holder as usize];
 
             // rcon
             temp[0] ^= RCON[iteration as usize];
