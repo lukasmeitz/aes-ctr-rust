@@ -312,8 +312,8 @@ fn add_round_key(word: &mut [u8], key: &[u8]) {
 
 fn substitute_bytes(word: &mut [u8]) {
 
-    for i in 0..16 {
-        word[i] = SUBSTITUTION[word[i] as usize];
+    for w in word.iter_mut() {
+        *w = SUBSTITUTION[*w as usize];
     }
 
 }
