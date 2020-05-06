@@ -322,8 +322,8 @@ fn shift_rows(word: &mut [u8]) {
 
     let mut temp: [u8; 16] = [0; 16];
 
-    for i in 0..16 {
-        temp[i] = word[i];
+    for(t, w) in temp.iter_mut().zip(word.iter()) {
+        *t = *w;
     }
 
     word[0] = temp[0];
@@ -371,8 +371,8 @@ fn mix_columns(word: &mut [u8]) {
     temp[14] = word[12] ^ word[13] ^ MULTIPLY_2[word[14] as usize] ^ MULTIPLY_3[word[15] as usize];
     temp[15] = MULTIPLY_3[word[12] as usize] ^ word[13] ^ word[14] ^ MULTIPLY_2[word[15] as usize];
 
-    for i in 0..16 {
-        word[i] = temp[i];
+    for (w, t) in word.iter_mut().zip(temp.iter()) {
+        *w = *t;
     }
 
 }
