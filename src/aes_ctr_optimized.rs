@@ -5,6 +5,7 @@ use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::char::from_u32;
 use std::convert::TryInto;
+use core::num::FpCategory::Subnormal;
 
 // Lookup Tables
 const SUBSTITUTION: [u8; 256] = [
@@ -759,7 +760,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     // init
     let mut round_counter = 0;
 
-
     // pre round
     //add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
@@ -768,6 +768,11 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     let mut s1: u32 = u32::from_be_bytes(word[4..8].try_into().unwrap());
     let mut s2: u32 = u32::from_be_bytes(word[8..12].try_into().unwrap());
     let mut s3: u32 = u32::from_be_bytes(word[12..16].try_into().unwrap());
+
+    let mut tmp0 = 0;
+    let mut tmp1 = 0;
+    let mut tmp2 = 0;
+    let mut tmp3 = 0;
 
 
     s0 ^= u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
@@ -778,28 +783,27 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     round_counter += 1;
 
     // rounds
-    //while round_counter < (keys_vector.len()/16)-1 {
     while round_counter < (keys_vector.len()/16)-1 {
 
-        let tmp0 = te0[((s0 >> 24) as u8) as usize]
+        tmp0 = te0[((s0 >> 24) as u8) as usize]
             ^ te1[((s1 >> 16) as u8) as usize]
             ^ te2[((s2 >> 8) as u8) as usize]
             ^ te3[((s3) as u8) as usize]
             ^ u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
 
-        let tmp1 = te0[((s1 >> 24) as u8) as usize]
+        tmp1 = te0[((s1 >> 24) as u8) as usize]
             ^ te1[((s2 >> 16) as u8) as usize]
             ^ te2[((s3 >> 8) as u8) as usize]
             ^ te3[((s0) as u8) as usize]
             ^ u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
 
-        let tmp2 = te0[((s2 >> 24) as u8) as usize]
+        tmp2 = te0[((s2 >> 24) as u8) as usize]
             ^ te1[((s3 >> 16) as u8) as usize]
             ^ te2[((s0 >> 8) as u8) as usize]
             ^ te3[((s1) as u8) as usize]
             ^ u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
 
-        let tmp3 = te0[((s3 >> 24) as u8) as usize]
+        tmp3 = te0[((s3 >> 24) as u8) as usize]
             ^ te1[((s0 >> 16) as u8) as usize]
             ^ te2[((s1 >> 8) as u8) as usize]
             ^ te3[((s2) as u8) as usize]
@@ -820,6 +824,19 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
         round_counter += 1;
     }
 
+    // sbox and shift
+    s0 = (SUBSTITUTION[(tmp0>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp1>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp2>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp3&0xff) as usize]) as u32;
+    s1 = (SUBSTITUTION[(tmp1>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp2>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp3>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp0&0xff) as usize]) as u32;
+    s2 = (SUBSTITUTION[(tmp2>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp3>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp0>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp1&0xff) as usize]) as u32;
+    s3 = (SUBSTITUTION[(tmp3>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp0>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp1>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp2&0xff) as usize]) as u32;
+
+    // add round key
+    s0 ^= u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
+    s1 ^= u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
+    s2 ^= u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
+    s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
+
+    // write back to word
     let s0b = s0.to_be_bytes();
     word[0] = s0b[0];
     word[1] = s0b[1];
@@ -845,9 +862,10 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     word[15] = s3b[3];
 
     // final round
-    substitute_bytes(word);
-    shift_rows(word);
+    //substitute_bytes(word);
+    //shift_rows(word);
 
-    add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
+
+    //add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
 }
