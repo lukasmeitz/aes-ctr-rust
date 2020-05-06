@@ -218,6 +218,10 @@ pub fn handle_aes_ctr_command(command: String,
         counter += 1;
 
         // xor input with counter
+        for (b, c) in buffer.iter_mut().zip(counter_bytes.iter()) {
+            *b ^= *c;
+        }
+        /*
         buffer[0] ^= counter_bytes[0];
         buffer[1] ^= counter_bytes[1];
         buffer[2] ^= counter_bytes[2];
@@ -233,7 +237,7 @@ pub fn handle_aes_ctr_command(command: String,
         buffer[12] ^= counter_bytes[12];
         buffer[13] ^= counter_bytes[13];
         buffer[14] ^= counter_bytes[14];
-        buffer[15] ^= counter_bytes[15];
+        buffer[15] ^= counter_bytes[15];*/
 
         // end loop if end of file
         if end_of_file {
@@ -316,12 +320,9 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
 fn add_round_key(word: &mut [u8], key: &[u8]) {
 
-    //for i in 0..16 {
     for (w, k) in word.iter_mut().zip(key.iter()) {
 
         *w ^= *k;
-
-        //word[i] = word[i] ^ key[i];
     }
 
 }
