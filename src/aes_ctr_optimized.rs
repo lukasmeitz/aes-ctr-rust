@@ -211,13 +211,13 @@ pub fn handle_aes_ctr_command(command: String,
                               input_file_path: std::path::PathBuf,
                               output_file_path: std::path::PathBuf) {
 
-    println!("\n### Dummy printing ...");
-    println!(" - command           = {}", command);
-    println!(" - key_size          = {}", key_size);
+    //println!("\n### Dummy printing ...");
+    //println!(" - command           = {}", command);
+    //println!(" - key_size          = {}", key_size);
     //println_bytes(" - key_bytes         = ", &key_bytes);
     //println_bytes(" - iv_bytes          = ", &iv_bytes);
-    println!(" - input_file_path   = {}", input_file_path.display());
-    println!(" - output_file_path  = {}", output_file_path.display());
+    //println!(" - input_file_path   = {}", input_file_path.display());
+    //println!(" - output_file_path  = {}", output_file_path.display());
 
     // definitions
     let block_size = 16;
@@ -235,12 +235,14 @@ pub fn handle_aes_ctr_command(command: String,
 
     // input file
     let input_file = File::open(input_file_path).unwrap();
-    let mut reader = BufReader::with_capacity(block_size, input_file);
+    let mut reader = BufReader::new(input_file);
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
     let output_file = File::create(output_file_path).unwrap();
-    let mut writer = BufWriter::with_capacity(block_size, output_file);
+    let mut writer = BufWriter::new(output_file);
+
+
 
     loop {
 
