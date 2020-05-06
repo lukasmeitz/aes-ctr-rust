@@ -496,25 +496,25 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
             ^ T_1[((s1 >> 16) as u8) as usize]
             ^ T_2[((s2 >> 8) as u8) as usize]
             ^ T_3[((s3) as u8) as usize]
-            ^ u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
+            ^ u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
 
         let tmp1 = T_0[((s2 >> 24) as u8) as usize]
             ^ T_1[((s2 >> 16) as u8) as usize]
             ^ T_2[((s3 >> 8) as u8) as usize]
             ^ T_3[((s0) as u8) as usize]
-            ^ u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
+            ^ u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
 
         let tmp2 = T_0[((s2 >> 24) as u8) as usize]
             ^ T_1[((s3 >> 16) as u8) as usize]
             ^ T_2[((s0 >> 8) as u8) as usize]
             ^ T_3[((s1) as u8) as usize]
-            ^ u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
+            ^ u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
 
         let tmp3 = T_0[((s3 >> 24) as u8) as usize]
             ^ T_1[((s0 >> 16) as u8) as usize]
             ^ T_2[((s1 >> 8) as u8) as usize]
             ^ T_3[((s2) as u8) as usize]
-            ^ u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
+            ^ u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
 
 
         s0 = tmp0;
