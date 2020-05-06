@@ -329,26 +329,18 @@ fn test_key_expand_256_vector() {
     assert_eq!(generated_keys.len(), 240);
 }
 
-fn key_expansion_core(bytes: &[u8], index: u32) -> Vec<u8> {
+fn key_expansion_core(bytes: &[u8], index: u32) {
 
-    let mut temp = Vec::new();
+    let mut temp = [0u8; 4];
 
-    // Rotate left 1 byte
-    temp.push(bytes[1]);
-    temp.push(bytes[2]);
-    temp.push(bytes[3]);
-    temp.push(bytes[0]);
-
-    // sbox four bytes
-    temp[0] = SUBSTITUTION[temp[0] as usize];
-    temp[1] = SUBSTITUTION[temp[1] as usize];
-    temp[2] = SUBSTITUTION[temp[2] as usize];
-    temp[3] = SUBSTITUTION[temp[3] as usize];
+    // sbox four bytes rotatet left for one bit
+    temp[0] = SUBSTITUTION[bytes[1] as usize];
+    temp[1] = SUBSTITUTION[bytes[2] as usize];
+    temp[2] = SUBSTITUTION[bytes[3] as usize];
+    temp[3] = SUBSTITUTION[bytes[0] as usize];
 
     // rcon
     temp[0] ^= RCON[index as usize];
-
-    temp
 
 }
 
@@ -378,13 +370,15 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
         // run the core method if a complete key was generated in last iteration
         if generated_count % n == 0 {
-            let new_bytes = key_expansion_core(&temp, iteration);
-            let mut c = 0;
-            for i in new_bytes.iter() {
-                // copy back to temp
-                temp[c] = *i;
-                c += 1;
-            }
+
+            // sbox four bytes rotatet left for one bit
+            temp[1] = SUBSTITUTION[temp[2] as usize];
+            temp[2] = SUBSTITUTION[temp[3] as usize];
+            temp[3] = SUBSTITUTION[temp[0] as usize];
+
+            // rcon
+            temp[0] ^= RCON[iteration as usize];
+
             iteration += 1;
         } else if key_count > 11 && generated_count % 16 == 0 {
             temp[0] = SUBSTITUTION[temp[0] as usize];
