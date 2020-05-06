@@ -771,6 +771,7 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     let mut s3: u32 = u32::from_be_bytes(word[12..16].try_into().unwrap());
 
     // rounds
+    //while round_counter < (keys_vector.len()/16)-1 {
     while round_counter < (keys_vector.len()/16)-1 {
 
         let tmp0 = te0[((s0 >> 24) as u8) as usize]
@@ -779,7 +780,7 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
             ^ te3[((s3) as u8) as usize]
             ^ u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
 
-        let tmp1 = te0[((s2 >> 24) as u8) as usize]
+        let tmp1 = te0[((s1 >> 24) as u8) as usize]
             ^ te1[((s2 >> 16) as u8) as usize]
             ^ te2[((s3 >> 8) as u8) as usize]
             ^ te3[((s0) as u8) as usize]
