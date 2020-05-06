@@ -757,7 +757,7 @@ pub fn test_aes_1() {
 fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
 
     // init
-    let mut round_counter = 1;
+    let mut round_counter = 0;
 
 
     // pre round
@@ -774,6 +774,8 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     s1 ^= u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
     s2 ^= u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
     s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
+
+    round_counter += 1;
 
     // rounds
     //while round_counter < (keys_vector.len()/16)-1 {
