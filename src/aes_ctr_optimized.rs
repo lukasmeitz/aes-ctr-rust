@@ -171,38 +171,6 @@ const RCON: [u8; 21] =
 0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c,	0xd8, 0xab, 0x4d, 0x9a,	0x2f, 0x5e, 0xbc, 0x63, 0xc6
 ];
 
-
-// Function to print bytes
-fn println_bytes(name_str: &str, bytes: &Vec<u8>) {
-    print!("{}", name_str);
-    for b in bytes {
-      print!("{:02x}", b);
-    }
-    print!("\n");
-}
-
-#[test]
-fn test_ctr_call_1() {
-
-    let key_vec: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
-    let init_vec: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
-
-    // create test file
-    let test_file = File::create("test.txt").unwrap();
-    let mut writer = BufWriter::new(test_file);
-    writer.write("Hello World1234!".as_bytes());
-    writer.flush();
-
-    let generated_data = handle_aes_ctr_command(String::from("encode"),
-                                                128,
-                                                key_vec.to_vec(),
-                                                init_vec.to_vec(),
-                                                PathBuf::from("test.txt"),
-                                                PathBuf::from("test.txt.enc128"));
-
-    assert_eq!(1, 1);
-}
-
 // Function to handle encryption/decryption command with given parameters
 pub fn handle_aes_ctr_command(command: String,
                               key_size: u16,
@@ -210,14 +178,6 @@ pub fn handle_aes_ctr_command(command: String,
                               iv_bytes: Vec<u8>,
                               input_file_path: std::path::PathBuf,
                               output_file_path: std::path::PathBuf) {
-
-    //println!("\n### Dummy printing ...");
-    //println!(" - command           = {}", command);
-    //println!(" - key_size          = {}", key_size);
-    //println_bytes(" - key_bytes         = ", &key_bytes);
-    //println_bytes(" - iv_bytes          = ", &iv_bytes);
-    //println!(" - input_file_path   = {}", input_file_path.display());
-    //println!(" - output_file_path  = {}", output_file_path.display());
 
     // definitions
     let block_size = 16;
@@ -236,111 +196,54 @@ pub fn handle_aes_ctr_command(command: String,
     // input file
     let input_file = File::open(input_file_path).unwrap();
     let mut reader = BufReader::new(input_file);
+    let mut read_count= 0;
+    let mut counter_bytes;
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
     let output_file = File::create(output_file_path).unwrap();
     let mut writer = BufWriter::new(output_file);
 
-
-
     loop {
 
         // read one block of data
-        let read_count = reader.read(&mut buffer).unwrap();
+        read_count = reader.read(&mut buffer).unwrap();
 
         // detect end of file
-        if read_count != 16 {
-            end_of_file = true;
-        }
+        end_of_file = read_count != 16;
 
         // generate cipher block and encrypt it
-        let mut counter_bytes = counter.to_be_bytes();
+        counter_bytes = counter.to_be_bytes();
         encrypt_aes(&mut counter_bytes, &expanded_keys);
         counter += 1;
 
-        // xor cipher block with data
-        let mut out_bytes: [u8; 16] = [0; 16];
-        let mut xor_counter = 0;
-        for byte in counter_bytes.iter() {
-            out_bytes[xor_counter] = byte ^ buffer[xor_counter];
-            xor_counter += 1;
-        }
-
+        // xor input with counter
+        buffer[0] ^= counter_bytes[0];
+        buffer[1] ^= counter_bytes[1];
+        buffer[2] ^= counter_bytes[2];
+        buffer[3] ^= counter_bytes[3];
+        buffer[4] ^= counter_bytes[4];
+        buffer[5] ^= counter_bytes[5];
+        buffer[6] ^= counter_bytes[6];
+        buffer[7] ^= counter_bytes[7];
+        buffer[8] ^= counter_bytes[8];
+        buffer[9] ^= counter_bytes[9];
+        buffer[10] ^= counter_bytes[10];
+        buffer[11] ^= counter_bytes[11];
+        buffer[12] ^= counter_bytes[12];
+        buffer[13] ^= counter_bytes[13];
+        buffer[14] ^= counter_bytes[14];
+        buffer[15] ^= counter_bytes[15];
 
         // end loop if end of file
         if end_of_file {
-            // write back data
-            let _ = writer.write(&out_bytes[0..read_count]).unwrap();
+            let _ = writer.write(&buffer[0..read_count]).unwrap();
             break;
         } else {
-            // write back data
-            let _ = writer.write(&out_bytes).unwrap();
+            let _ = writer.write(&buffer).unwrap();
         }
 
-    } // end of loop
-
-}
-
-#[test]
-fn test_key_expand_1() {
-    let key: [u8; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
-    let key_vec = key.to_vec();
-
-    let generated_keys = key_expansion(key_vec, 11);
-    println_bytes("generated keys:\n", &generated_keys);
-
-    assert_eq!(generated_keys.len(), 176);
-}
-
-#[test]
-fn test_key_expand_2() {
-
-    let key: [u8; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
-    let key_vec = key.to_vec();
-
-    let generated_keys = key_expansion(key_vec, 15);
-    println_bytes("generated keys:\n", &generated_keys);
-
-    assert_eq!(generated_keys.len(), 240);
-}
-
-#[test]
-fn test_key_expand_128_vector() {
-    let key: [u8; 16] = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c];
-    let key_vec = key.to_vec();
-
-    let generated_keys = key_expansion(key_vec, 11);
-    println_bytes("generated keys:\n", &generated_keys);
-
-    assert_eq!(generated_keys.len(), 176);
-
-
-}
-
-#[test]
-fn test_key_expand_256_vector() {
-    let key: [u8; 32] = [0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4];
-    let key_vec = key.to_vec();
-
-    let generated_keys = key_expansion(key_vec, 15);
-    println_bytes("generated keys:\n", &generated_keys);
-
-    assert_eq!(generated_keys.len(), 240);
-}
-
-fn key_expansion_core(bytes: &[u8], index: u32) {
-
-    let mut temp = [0u8; 4];
-
-    // sbox four bytes rotatet left for one bit
-    temp[0] = SUBSTITUTION[bytes[1] as usize];
-    temp[1] = SUBSTITUTION[bytes[2] as usize];
-    temp[2] = SUBSTITUTION[bytes[3] as usize];
-    temp[3] = SUBSTITUTION[bytes[0] as usize];
-
-    // rcon
-    temp[0] ^= RCON[index as usize];
+    }
 
 }
 
@@ -389,7 +292,6 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
             temp[2] = SUBSTITUTION[temp[2] as usize];
             temp[3] = SUBSTITUTION[temp[3] as usize];
         }
-
 
         // xor 4 new bytes to first 4 bytes of the last generated key
         temp[0] ^= return_keys[return_keys.len() - n];
@@ -486,22 +388,6 @@ fn mix_columns(word: &mut [u8]) {
     }
 
 }
-
-
-/*#[test]
-fn test_aes_1() {
-    let key: [u8; 16] = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
-    let key_vec = key.to_vec();
-
-    let generated_keys = key_expansion(key_vec, 11);
-    println_bytes("generated keys:\n", &generated_keys);
-
-    let mut message = "Hello World1234!".as_bytes();
-    encrypt_aes(&mut message, &generated_keys.as_slice());
-
-    println_bytes("output: ", &message.to_vec());
-
-}*/
 
 fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
 
