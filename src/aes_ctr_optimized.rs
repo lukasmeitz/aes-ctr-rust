@@ -392,14 +392,11 @@ fn mix_columns(word: &mut [u8]) {
 fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
 
     // init
-    let mut round_counter = 1;
-
-    // expand keys
-    let mut key_index = 0;
+    let mut round_counter = 0;
 
     // pre round
-    add_round_key(word, &keys_vector[key_index..16]);
-    key_index += 16;
+    add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
+    round_counter += 1;
 
     // rounds
     while round_counter < (keys_vector.len()/16)-1 {
@@ -407,9 +404,9 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
         substitute_bytes(word);
         shift_rows(word);
         mix_columns(word);
-        add_round_key(word, &keys_vector[key_index..key_index+16]);
+        //add_round_key(word, &keys_vector[key_index..key_index+16]);
+        add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
-        key_index += 16;
         round_counter += 1;
     }
 
@@ -417,6 +414,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     substitute_bytes(word);
     shift_rows(word);
 
-    add_round_key(word, &keys_vector[key_index..key_index+16]);
+    add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
 }
