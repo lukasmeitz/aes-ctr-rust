@@ -195,14 +195,14 @@ pub fn handle_aes_ctr_command(command: String,
 
     // input file
     let input_file = File::open(input_file_path).unwrap();
-    let mut reader = BufReader::new(input_file);
+    let mut reader = BufReader::with_capacity(1048576, input_file);
     let mut read_count= 0;
     let mut counter_bytes;
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
     let output_file = File::create(output_file_path).unwrap();
-    let mut writer = BufWriter::new(output_file);
+    let mut writer = BufWriter::with_capacity(1048576,output_file);
 
     loop {
 
