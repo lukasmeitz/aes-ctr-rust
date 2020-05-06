@@ -824,17 +824,17 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
         round_counter += 1;
     }
 
-    // sbox and shift
-    s0 = (SUBSTITUTION[(tmp0>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp1>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp2>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp3&0xff) as usize]) as u32;
-    s1 = (SUBSTITUTION[(tmp1>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp2>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp3>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp0&0xff) as usize]) as u32;
-    s2 = (SUBSTITUTION[(tmp2>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp3>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp0>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp1&0xff) as usize]) as u32;
-    s3 = (SUBSTITUTION[(tmp3>>24) as usize]<<24) as u32 | (SUBSTITUTION[(tmp0>>16&0xff) as usize]<<16) as u32 | (SUBSTITUTION[(tmp1>>8&0xff) as usize]<<8) as u32 | (SUBSTITUTION[(tmp2&0xff) as usize]) as u32;
+    /*/ sbox and shift
+    s0 = (SUBSTITUTION[(tmp0>>24) as usize] as u32) << 24 | (SUBSTITUTION[(tmp1>>16&0xff) as usize] as u32) << 16 | (SUBSTITUTION[(tmp2>>8&0xff) as usize] as u32) << 8 | (SUBSTITUTION[(tmp3&0xff) as usize]) as u32;
+    s1 = (SUBSTITUTION[(tmp1>>24) as usize] as u32) << 24 | (SUBSTITUTION[(tmp2>>16&0xff) as usize] as u32) << 16 | (SUBSTITUTION[(tmp3>>8&0xff) as usize] as u32) << 8 | (SUBSTITUTION[(tmp0&0xff) as usize]) as u32;
+    s2 = (SUBSTITUTION[(tmp2>>24) as usize] as u32) << 24 | (SUBSTITUTION[(tmp3>>16&0xff) as usize] as u32) << 16 | (SUBSTITUTION[(tmp0>>8&0xff) as usize] as u32) << 8 | (SUBSTITUTION[(tmp1&0xff) as usize]) as u32;
+    s3 = (SUBSTITUTION[(tmp3>>24) as usize] as u32) << 24 | (SUBSTITUTION[(tmp0>>16&0xff) as usize] as u32) << 16 | (SUBSTITUTION[(tmp1>>8&0xff) as usize] as u32) << 8 | (SUBSTITUTION[(tmp2&0xff) as usize]) as u32;
 
     // add round key
     s0 ^= u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
     s1 ^= u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
     s2 ^= u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
-    s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
+    s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());*/
 
     // write back to word
     let s0b = s0.to_be_bytes();
@@ -862,10 +862,9 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     word[15] = s3b[3];
 
     // final round
-    //substitute_bytes(word);
-    //shift_rows(word);
+    substitute_bytes(word);
+    shift_rows(word);
 
-
-    //add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
+    add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
 }
