@@ -316,8 +316,12 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u8> {
 
 fn add_round_key(word: &mut [u8], key: &[u8]) {
 
-    for i in 0..16 {
-        word[i] = word[i] ^ key[i];
+    //for i in 0..16 {
+    for (w, k) in word.iter_mut().zip(key.iter()) {
+
+        *w ^= *k;
+
+        //word[i] = word[i] ^ key[i];
     }
 
 }
@@ -404,7 +408,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
         substitute_bytes(word);
         shift_rows(word);
         mix_columns(word);
-        //add_round_key(word, &keys_vector[key_index..key_index+16]);
         add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
         round_counter += 1;
