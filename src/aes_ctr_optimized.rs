@@ -757,18 +757,23 @@ pub fn test_aes_1() {
 fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
 
     // init
-    let mut round_counter = 0;
+    let mut round_counter = 1;
 
 
     // pre round
-    add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
+    //add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
 
-    round_counter += 1;
 
     let mut s0: u32 = u32::from_be_bytes(word[0..4].try_into().unwrap());
     let mut s1: u32 = u32::from_be_bytes(word[4..8].try_into().unwrap());
     let mut s2: u32 = u32::from_be_bytes(word[8..12].try_into().unwrap());
     let mut s3: u32 = u32::from_be_bytes(word[12..16].try_into().unwrap());
+
+
+    s0 ^= u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
+    s1 ^= u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
+    s2 ^= u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
+    s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
 
     // rounds
     //while round_counter < (keys_vector.len()/16)-1 {
