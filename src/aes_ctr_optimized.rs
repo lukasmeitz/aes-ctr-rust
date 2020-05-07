@@ -249,7 +249,7 @@ pub fn create_t_tables() {
 
     } print!("]\n\n");
 
-    // print t2
+    // print t3
     c = 1;
     print!("const T_3: [u32; 256] = [");
     for r in res3.iter() {
@@ -293,7 +293,8 @@ pub fn handle_aes_ctr_command(_command: String,
     let input_file = File::open(input_file_path).unwrap();
     let mut reader = BufReader::with_capacity(1048576, input_file);
     let mut read_count= 0;
-    let mut counter_bytes;
+    //let mut counter_bytes;
+    let mut counter_enc = 0u128;
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
@@ -304,26 +305,33 @@ pub fn handle_aes_ctr_command(_command: String,
 
         // read one block of data
         read_count = reader.read(&mut buffer).unwrap();
-
-        // detect end of file
         end_of_file = read_count != 16;
 
         // generate cipher block and encrypt it
-        counter_bytes = counter.to_be_bytes();
-        encrypt_aes(&mut counter_bytes, &expanded_keys);
+        //counter_bytes = counter.to_be_bytes();
+        //encrypt_aes(&mut counter_bytes, &expanded_keys);
+
+        // encrypt counter
+        counter_enc = encrypt_aes(counter, &expanded_keys);
         counter += 1;
 
+        // cast read bytes
+        let buffer_num = u128::from_be_bytes(buffer);
+        counter_enc ^= buffer_num;
+
         // xor input with counter
-        for (b, c) in buffer.iter_mut().zip(counter_bytes.iter()) {
-            *b ^= *c;
-        }
+        //for (b, c) in buffer.iter_mut().zip(counter_bytes.iter()) {
+        //    *b ^= *c;
+        //}
 
         // end loop if end of file
         if end_of_file {
-            writer.write(&buffer[0..read_count]).unwrap();
+            //writer.write(&buffer[0..read_count]).unwrap();
+            writer.write(&counter_enc.to_be_bytes()[0..read_count]).unwrap();
             break;
         } else {
-            writer.write(&buffer).unwrap();
+            //writer.write(&buffer).unwrap();
+            writer.write(&counter_enc.to_be_bytes()).unwrap();
         }
 
     }
@@ -445,10 +453,12 @@ fn shift_rows(word: &mut [u8]) {
 }
 
 
-fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
+//fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
+fn encrypt_aes(word_num: u128, keys_vector: &[u8]) -> u128 {
 
     // init
     let mut round_counter = 0;
+    let mut word = word_num.to_be_bytes();
 
     let mut s0: u32 = u32::from_be_bytes(word[0..4].try_into().unwrap());
     let mut s1: u32 = u32::from_be_bytes(word[4..8].try_into().unwrap());
@@ -459,7 +469,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     let mut tmp1 = 0;
     let mut tmp2 = 0;
     let mut tmp3 = 0;
-
 
     s0 ^= u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
     s1 ^= u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
@@ -495,13 +504,13 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
              ^ T_3[((s2) as u8) as usize]
              ^ u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
 
-
         s0 = tmp0;
         s1 = tmp1;
         s2 = tmp2;
         s3 = tmp3;
 
         round_counter += 1;
+
     }
 
     // sbox and shift
@@ -517,35 +526,11 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
 
     // write back to word
-    let s = (s0 as u128) << 96 | (s1 as u128) << 64 | (s2 as u128) << 32 | (s3 as u128);
-    for (w, si) in word.iter_mut().zip(s.to_be_bytes().iter()) {
-        *w = *si;
-    }
+    //let s = (s0 as u128) << 96 | (s1 as u128) << 64 | (s2 as u128) << 32 | (s3 as u128);
+    //for (w, si) in word.iter_mut().zip(s.to_be_bytes().iter()) {
+    //    *w = *si;
+    //}
 
-
-    /*
-    let s0b = s0.to_be_bytes();
-    word[0] = s0b[0];
-    word[1] = s0b[1];
-    word[2] = s0b[2];
-    word[3] = s0b[3];
-
-    let s1b = s1.to_be_bytes();
-    word[4] = s1b[0];
-    word[5] = s1b[1];
-    word[6] = s1b[2];
-    word[7] = s1b[3];
-
-    let s2b = s2.to_be_bytes();
-    word[8] = s2b[0];
-    word[9] = s2b[1];
-    word[10] = s2b[2];
-    word[11] = s2b[3];
-
-    let s3b = s3.to_be_bytes();
-    word[12] = s3b[0];
-    word[13] = s3b[1];
-    word[14] = s3b[2];
-    word[15] = s3b[3];*/
+    (s0 as u128) << 96 | (s1 as u128) << 64 | (s2 as u128) << 32 | (s3 as u128)
 
 }
