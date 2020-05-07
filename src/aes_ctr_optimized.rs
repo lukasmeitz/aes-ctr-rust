@@ -388,7 +388,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u32> {
 
     for i in 0..(return_keys.len()/4) {
         return_u32.push(
-            ((return_keys[i * 4] as u32) << 24) | ((return_keys[i*4 + 1] as u32) << 16) | ((return_keys[i*4 + 2] as u32) << 8) | (return_keys[i*4 + 3] as u32)
+            ((return_keys[(i * 4)+3] as u32) << 24) | ((return_keys[(i*4) + 2] as u32) << 16) | ((return_keys[(i*4) + 1] as u32) << 8) | (return_keys[i*4] as u32)
         );
     }
 
