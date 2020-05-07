@@ -266,8 +266,7 @@ pub fn create_t_tables() {
 
 }
 
-
-// Function to print bytes
+// Function to properly print bytes
 fn println_bytes(name_str: &str, bytes: &Vec<u8>) {
     print!("{}", name_str);
     for b in bytes {
@@ -325,21 +324,7 @@ pub fn handle_aes_ctr_command(_command: String,
             writer.write(&data_enc.to_be_bytes()[0..read_count]).unwrap();
             break;
         }
-
     }
-
-}
-
-#[test]
-fn test_key_expand_128_vector() {
-    let key: [u8; 16] = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c];
-    let key_vec = key.to_vec();
-
-    let generated_keys = key_expansion(key_vec, 11);
-
-    assert_eq!(generated_keys.len(), 176);
-
-
 }
 
 #[test]
@@ -352,7 +337,6 @@ fn test_key_expand_256_vector() {
     for i in 0..generated_keys.len() {
         println!("{}", generated_keys[i]);
     }
-
 
     assert_eq!(generated_keys.len(), 240);
 }
@@ -420,15 +404,14 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u32> {
 
     }
 
+    // cast to u32 vec
     let mut return_u32 = Vec::new();
-
     for i in 0..key_count*4 {
         return_u32.push(
             ((return_keys[(i * 4)] as u32) << 24) | ((return_keys[(i*4) + 1] as u32) << 16) | ((return_keys[(i*4) + 2] as u32) << 8) | (return_keys[(i*4) + 3] as u32)
         );
     }
 
-    //return_keys
     return_u32
 
 }
@@ -525,12 +508,6 @@ fn encrypt_aes(word_num: u128, keys_vector: &[u32]) -> u128 {
     let mut tmp2 = 0;
     let mut tmp3 = 0;
 
-    /*
-    s0 ^= u32::from_be_bytes(keys_vector[round_counter*4].try_into().unwrap());
-    s1 ^= u32::from_be_bytes(keys_vector[round_counter*4+1].try_into().unwrap());
-    s2 ^= u32::from_be_bytes(keys_vector[round_counter*4+2].try_into().unwrap());
-    s3 ^= u32::from_be_bytes(keys_vector[round_counter*4+3].try_into().unwrap());*/
-
     s0 ^= keys_vector[round_counter*4];
     s1 ^= keys_vector[round_counter*4+1];
     s2 ^= keys_vector[round_counter*4+2];
@@ -546,28 +523,24 @@ fn encrypt_aes(word_num: u128, keys_vector: &[u32]) -> u128 {
              ^ T_2[((s2 >> 8) as u8) as usize]
              ^ T_3[((s3) as u8) as usize]
              ^ keys_vector[round_counter*4];
-             //^ u32::from_be_bytes(keys_vector[round_counter*16..round_counter*16+4].try_into().unwrap());
 
         tmp1 = T_0[((s1 >> 24) as u8) as usize]
              ^ T_1[((s2 >> 16) as u8) as usize]
              ^ T_2[((s3 >> 8) as u8) as usize]
              ^ T_3[((s0) as u8) as usize]
              ^ keys_vector[round_counter*4+1];
-             //^ u32::from_be_bytes(keys_vector[round_counter*16+4..round_counter*16+8].try_into().unwrap());
 
         tmp2 = T_0[((s2 >> 24) as u8) as usize]
              ^ T_1[((s3 >> 16) as u8) as usize]
              ^ T_2[((s0 >> 8) as u8) as usize]
              ^ T_3[((s1) as u8) as usize]
              ^ keys_vector[round_counter*4+2];
-             //^ u32::from_be_bytes(keys_vector[round_counter*16+8..round_counter*16+12].try_into().unwrap());
 
         tmp3 = T_0[((s3 >> 24) as u8) as usize]
              ^ T_1[((s0 >> 16) as u8) as usize]
              ^ T_2[((s1 >> 8) as u8) as usize]
              ^ T_3[((s2) as u8) as usize]
              ^ keys_vector[round_counter*4+3];
-             //^ u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
 
         s0 = tmp0;
         s1 = tmp1;
