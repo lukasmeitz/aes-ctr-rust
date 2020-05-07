@@ -267,6 +267,15 @@ pub fn create_t_tables() {
 }
 
 
+// Function to print bytes
+fn println_bytes(name_str: &str, bytes: &Vec<u8>) {
+    print!("{}", name_str);
+    for b in bytes {
+        print!("{:02x}", b);
+    }
+    print!("\n");
+}
+
 // Function to handle encryption/decryption command with given parameters
 pub fn handle_aes_ctr_command(_command: String,
                               key_size: u16,
@@ -319,6 +328,33 @@ pub fn handle_aes_ctr_command(_command: String,
 
     }
 
+}
+
+#[test]
+fn test_key_expand_128_vector() {
+    let key: [u8; 16] = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c];
+    let key_vec = key.to_vec();
+
+    let generated_keys = key_expansion(key_vec, 11);
+
+    assert_eq!(generated_keys.len(), 176);
+
+
+}
+
+#[test]
+fn test_key_expand_256_vector() {
+    let key: [u8; 32] = [0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4];
+    let key_vec = key.to_vec();
+
+    let generated_keys = key_expansion(key_vec, 15);
+
+    for i in 0..generated_keys.len() {
+        println!("{}", generated_keys[i]);
+    }
+
+
+    assert_eq!(generated_keys.len(), 240);
 }
 
 fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u32> {
@@ -386,7 +422,7 @@ fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u32> {
 
     let mut return_u32 = Vec::new();
 
-    for i in 0..(generated_count/4) {
+    for i in 0..key_count*4 {
         return_u32.push(
             ((return_keys[(i * 4)] as u32) << 24) | ((return_keys[(i*4) + 1] as u32) << 16) | ((return_keys[(i*4) + 2] as u32) << 8) | (return_keys[(i*4) + 3] as u32)
         );
@@ -444,6 +480,34 @@ fn shift_rows(word: &mut [u8]) {
 
 }
 
+fn mix_columns(word: &mut [u8]) {
+    let mut temp = [0; 16];
+
+    temp[0] = MULTIPLY_2[word[0] as usize] ^ MULTIPLY_3[word[1] as usize] ^ word[2] ^ word[3];
+    temp[1] = word[0] ^ MULTIPLY_2[word[1] as usize] ^ MULTIPLY_3[word[2] as usize] ^ word[3];
+    temp[2] = word[0] ^ word[1] ^ MULTIPLY_2[word[2] as usize] ^ MULTIPLY_3[word[3] as usize];
+    temp[3] = MULTIPLY_3[word[0] as usize] ^ word[1] ^ word[2] ^ MULTIPLY_2[word[3] as usize];
+
+    temp[4] = MULTIPLY_2[word[4] as usize] ^ MULTIPLY_3[word[5] as usize] ^ word[6] ^ word[7];
+    temp[5] = word[4] ^ MULTIPLY_2[word[5] as usize] ^ MULTIPLY_3[word[6] as usize] ^ word[7];
+    temp[6] = word[4] ^ word[5] ^ MULTIPLY_2[word[6] as usize] ^ MULTIPLY_3[word[7] as usize];
+    temp[7] = MULTIPLY_3[word[4] as usize] ^ word[5] ^ word[6] ^ MULTIPLY_2[word[7] as usize];
+
+    temp[8] = MULTIPLY_2[word[8] as usize] ^ MULTIPLY_3[word[9] as usize] ^ word[10] ^ word[11];
+    temp[9] = word[8] ^ MULTIPLY_2[word[9] as usize] ^ MULTIPLY_3[word[10] as usize] ^ word[11];
+    temp[10] = word[8] ^ word[9] ^ MULTIPLY_2[word[10] as usize] ^ MULTIPLY_3[word[11] as usize];
+    temp[11] = MULTIPLY_3[word[8] as usize] ^ word[9] ^ word[10] ^ MULTIPLY_2[word[11] as usize];
+
+    temp[12] = MULTIPLY_2[word[12] as usize] ^ MULTIPLY_3[word[13] as usize] ^ word[14] ^ word[15];
+    temp[13] = word[12] ^ MULTIPLY_2[word[13] as usize] ^ MULTIPLY_3[word[14] as usize] ^ word[15];
+    temp[14] = word[12] ^ word[13] ^ MULTIPLY_2[word[14] as usize] ^ MULTIPLY_3[word[15] as usize];
+    temp[15] = MULTIPLY_3[word[12] as usize] ^ word[13] ^ word[14] ^ MULTIPLY_2[word[15] as usize];
+
+    for i in 0..16 {
+        word[i] = temp[i];
+    }
+
+}
 
 fn encrypt_aes(word_num: u128, keys_vector: &[u32]) -> u128 {
 
@@ -475,7 +539,7 @@ fn encrypt_aes(word_num: u128, keys_vector: &[u32]) -> u128 {
     round_counter += 1;
 
     // rounds
-    while round_counter < (keys_vector.len()/16)-1 {
+    while round_counter < (keys_vector.len()/4)-1 {
 
         tmp0 = T_0[((s0 >> 24) as u8) as usize]
              ^ T_1[((s1 >> 16) as u8) as usize]
