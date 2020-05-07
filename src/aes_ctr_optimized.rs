@@ -450,10 +450,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     // init
     let mut round_counter = 0;
 
-    // pre round
-    //add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);
-
-
     let mut s0: u32 = u32::from_be_bytes(word[0..4].try_into().unwrap());
     let mut s1: u32 = u32::from_be_bytes(word[4..8].try_into().unwrap());
     let mut s2: u32 = u32::from_be_bytes(word[8..12].try_into().unwrap());
@@ -505,12 +501,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
         s2 = tmp2;
         s3 = tmp3;
 
-        /*
-        substitute_bytes(word);
-        shift_rows(word);
-        mix_columns(word);
-        add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);*/
-
         round_counter += 1;
     }
 
@@ -527,6 +517,13 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     s3 ^= u32::from_be_bytes(keys_vector[round_counter*16+12..round_counter*16+16].try_into().unwrap());
 
     // write back to word
+    let s = (s0 as u128) << 96 | (s1 as u128) << 64 | (s2 as u128) << 32 | (s3 as u128);
+    for (w, si) in word.iter_mut().zip(s.to_be_bytes().iter()) {
+        *w = *si;
+    }
+
+
+    /*
     let s0b = s0.to_be_bytes();
     word[0] = s0b[0];
     word[1] = s0b[1];
@@ -549,12 +546,6 @@ fn encrypt_aes(word: &mut [u8], keys_vector: &[u8]) {
     word[12] = s3b[0];
     word[13] = s3b[1];
     word[14] = s3b[2];
-    word[15] = s3b[3];
-
-    /*/ final round
-    substitute_bytes(word);
-    shift_rows(word);
-
-    add_round_key(word, &keys_vector[round_counter*16..round_counter*16+16]);*/
+    word[15] = s3b[3];*/
 
 }
