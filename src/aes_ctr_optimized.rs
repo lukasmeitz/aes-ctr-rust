@@ -298,14 +298,14 @@ pub fn handle_aes_ctr_command(_command: String,
 
     // input file
     let input_file = File::open(input_file_path).unwrap();
-    let mut reader = BufReader::new(input_file);//with_capacity(104857600, input_file); //148576
+    let mut reader = BufReader::new(input_file); //with_capacity(1048576, input_file); //148576
     let mut read_count= 0;
     let mut data_enc = 0u128;
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
     let output_file = File::create(output_file_path).unwrap();
-    let mut writer = BufWriter::new(output_file);//with_capacity(104857600,output_file); //148576
+    let mut writer = BufWriter::new(output_file); //with_capacity(1048576,output_file); //148576
 
     loop {
 
