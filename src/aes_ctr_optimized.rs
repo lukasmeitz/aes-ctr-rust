@@ -298,14 +298,14 @@ pub fn handle_aes_ctr_command(_command: String,
 
     // input file
     let input_file = File::open(input_file_path).unwrap();
-    let mut reader = BufReader::with_capacity(1048576, input_file);
+    let mut reader = BufReader::with_capacity(16, input_file); //148576
     let mut read_count= 0;
     let mut data_enc = 0u128;
     let mut buffer: [u8; 16] = [0; 16];
 
     // output file
     let output_file = File::create(output_file_path).unwrap();
-    let mut writer = BufWriter::with_capacity(1048576,output_file);
+    let mut writer = BufWriter::with_capacity(16,output_file); //148576
 
     loop {
 
@@ -329,6 +329,8 @@ pub fn handle_aes_ctr_command(_command: String,
 
 #[test]
 fn test_key_expand_256_vector() {
+
+    // example key from FIPS
     let key: [u8; 32] = [0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4];
     let key_vec = key.to_vec();
 
@@ -338,7 +340,52 @@ fn test_key_expand_256_vector() {
         println!("{}", generated_keys[i]);
     }
 
-    assert_eq!(generated_keys.len(), 240);
+    // test key length
+    assert_eq!(generated_keys.len(), 60);
+
+    // test first few vectors (original key)
+    assert_eq!(generated_keys[0], 0x603deb10 as u32);
+    assert_eq!(generated_keys[1], 0x15ca71be as u32);
+    assert_eq!(generated_keys[2], 0x2b73aef0 as u32);
+    assert_eq!(generated_keys[3], 0x857d7781 as u32);
+
+    // test next few vectors (expanded key from example vectors)
+    assert_eq!(generated_keys[8], 0x9ba35411 as u32);
+    assert_eq!(generated_keys[9], 0x8e6925af as u32);
+    assert_eq!(generated_keys[10], 0xa51a8b5f as u32);
+    assert_eq!(generated_keys[11], 0x2067fcde as u32);
+    assert_eq!(generated_keys[12], 0xa8b09c1a as u32);
+    assert_eq!(generated_keys[13], 0x93d194cd as u32);
+
+}
+
+#[test]
+fn test_key_expand_128_vector() {
+
+    // example key from FIPS
+    let key: [u8; 16] = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c];
+    let key_vec = key.to_vec();
+
+    let generated_keys = key_expansion(key_vec, 11);
+
+    for i in 0..generated_keys.len() {
+        println!("{}", generated_keys[i]);
+    }
+
+    // test key length
+    assert_eq!(generated_keys.len(), 44);
+
+    // test first few vectors (original key)
+    assert_eq!(generated_keys[0], 0x2b7e1516 as u32);
+    assert_eq!(generated_keys[1], 0x28aed2a6 as u32);
+    assert_eq!(generated_keys[2], 0xabf71588 as u32);
+    assert_eq!(generated_keys[3], 0x09cf4f3c as u32);
+
+    // test next few vectors (expanded key from example vectors)
+    assert_eq!(generated_keys[4], 0xa0fafe17 as u32);
+    assert_eq!(generated_keys[5], 0x88542cb1 as u32);
+    assert_eq!(generated_keys[6], 0x23a33939 as u32);
+    assert_eq!(generated_keys[7], 0x2a6c7605 as u32);
 }
 
 fn key_expansion(input_key: Vec<u8>, key_count: usize) -> Vec<u32> {
